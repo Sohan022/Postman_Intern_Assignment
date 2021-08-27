@@ -29,9 +29,13 @@ class Crawler:
         return True
         
 
-    def makeRequest(self,url,bearerToken):
+    def makeRequest(self,url,bearerToken,page = 1,category = None):
         headers = {"Authorization": bearerToken}
-        response = requests.request("GET", url, headers = headers)
+        if category != None:
+            params = {"page":page, "category":category}
+        else:
+            params = {"page":page}
+        response = requests.request("GET", url, headers = headers, params = params)
         if response.status_code == 200 or response.status_code == 403:
             return response.json()
         elif response.status_code == 429:
@@ -42,8 +46,8 @@ class Crawler:
     def getAllCategories(self):
         page = 1
         while True:
-            url = "".join(("https://public-apis-api.herokuapp.com/api/v1/apis/categories?page=",str(page)))
-            categoriesResponse = self.makeRequest(url, self.bearerToken)
+            url = "https://public-apis-api.herokuapp.com/api/v1/apis/categories"
+            categoriesResponse = self.makeRequest(url, self.bearerToken,page)
             if 'error' in categoriesResponse:
                 if categoriesResponse['error'] == "too many requests":
                     time.sleep(60)
@@ -61,12 +65,11 @@ class Crawler:
         return True
     
     def getAllCategoriesAPI(self):
-        for category in self.categories[:10]:
+        for category in self.categories:
             page = 1
-            category = category.replace("&","%26")
             while True:
-                url = "".join(("https://public-apis-api.herokuapp.com/api/v1/apis/entry?page=",str(page),"&category=",category))
-                categoriesResponse = self.makeRequest(url, self.bearerToken)
+                url = "https://public-apis-api.herokuapp.com/api/v1/apis/entry"
+                categoriesResponse = self.makeRequest(url, self.bearerToken,page,category)
                 if 'error' in categoriesResponse:
                     if categoriesResponse['error'] == "too many requests":
                         time.sleep(60)
