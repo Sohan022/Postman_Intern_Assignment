@@ -1,10 +1,63 @@
 import requests
 import time
+from getpass import getpass
+from mysql.connector import connect, Error
 
 class Crawler:
     categories = []
     data = []
     bearerToken = ""
+
+    try:
+        conn =  connect(
+            host="localhost",
+            user=input("Enter username: "),
+            password=getpass("Enter password: "),
+            database = "crawldata"
+        )
+        cur = conn.cursor()    
+    except Error as e:
+        print(e)
+    
+    def createTable(self):
+        drop_table_query = "DROP TABLE IF EXISTS apis"
+        create_table_query = """
+        CREATE TABLE apis (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            API VARCHAR(50),
+            Description VARCHAR(200),
+            Auth VARCHAR(20),
+            HTTPS BOOLEAN,
+            Cors VARCHAR(20),
+            Link VARCHAR(100),
+            Category VARCHAR(50)
+        )
+        """
+        try:
+            self.cur.execute(drop_table_query)
+            self.cur.execute(create_table_query)
+            self.conn.commit()
+        except:
+            self.conn.rollback()
+
+    def storeDatabase(self):
+        tupleDataList = []
+        for ele in self.data:
+            tple = (ele["API"], ele["Description"], ele["Auth"],ele["HTTPS"],ele["Cors"],ele["Link"],ele["Category"])
+            tupleDataList.append(tple)
+        
+            insert_apis_query = """
+            INSERT INTO apis
+            (API, Description, Auth, HTTPS, Cors, Link, Category)
+            VALUES ( %s, %s, %s, %s, %s, %s, %s )
+            """
+        try:
+            self.cur.executemany(insert_apis_query,tupleDataList);
+            self.conn.commit()
+        except:
+            self.conn.rollback()
+        
+
 
     def getToken(self):
         url = "https://public-apis-api.herokuapp.com/api/v1/auth/token"
@@ -88,15 +141,12 @@ class Crawler:
 
 #driver code
 crawl = Crawler()
-
+crawl.createTable()
 if crawl.setToken():
-    if crawl.getAllCategories():
-        print(crawl.categories)
-    else:
-        print("ERROR: Unknown Error")
-
-    if crawl.getAllCategoriesAPI():
-        print(crawl.data)
+    categoriesReturn = crawl.getAllCategories()
+    
+    if categoriesReturn and crawl.getAllCategoriesAPI():
+        crawl.storeDatabase()
     else:
         print("ERROR: Unknown Error")
         
