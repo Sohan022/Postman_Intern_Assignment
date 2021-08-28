@@ -67,12 +67,28 @@ class Crawler:
     def __getToken(self):
         url = "https://public-apis-api.herokuapp.com/api/v1/auth/token"
         response = requests.request("GET", url)
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 429:
-            return {"error":"too many requests"}
-        else:
-            return {"error":"unknown error"}
+        try:
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                return {"error":"too many requests"}
+            else:
+                response.raise_for_status()
+        except requests.exceptions.HTTPError as errh:
+            print(errh)
+            return {"error":"HTTP Error"}
+        except requests.exceptions.ConnectionError as errc:
+            print("Connection Error: Retry Again")
+            return {"error":"Connection Error: Retry Again"}
+        except requests.exceptions.Timeout as errt:
+            print("Timeout: Retry Again")
+            return {"error":"Timeout: Retry Again"}
+        except requests.exceptions.TooManyRedirects as errto:
+            print("Too Many Redirects: Bad Url, Try Different one")
+            return {"error":"Too Many Redirects: Bad Url, Try Different one"}
+        except requests.exceptions.RequestException as err:
+            print("ERROR: Unknow Error")
+            return {"error":"ERROR: Unknow Error"}
 
     def __setToken(self):
         token = self.__getToken()
@@ -93,13 +109,29 @@ class Crawler:
             params = {"page":page, "category":category}
         else:
             params = {"page":page}
-        response = requests.request("GET", url, headers = headers, params = params)
-        if response.status_code == 200 or response.status_code == 403:
-            return response.json()
-        elif response.status_code == 429:
-            return {"error":"too many requests"}
-        else:
-            return {"error":"unknown error"}
+        try: 
+            response = requests.request("GET", url, headers = headers, params = params)
+            if response.status_code == 200 or response.status_code == 403:
+                return response.json()
+            elif response.status_code == 429:
+                return {"error":"too many requests"}
+            else:
+                response.raise_for_status()
+        except requests.exceptions.HTTPError as errh:
+            print(errh)
+            return {"error":"HTTP Error"}
+        except requests.exceptions.ConnectionError as errc:
+            print("Connection Error: Retry Again")
+            return {"error":"Connection Error: Retry Again"}
+        except requests.exceptions.Timeout as errt:
+            print("Timeout: Retry Again")
+            return {"error":"Timeout: Retry Again"}
+        except requests.exceptions.TooManyRedirects as errto:
+            print("Too Many Redirects: Bad Url, Try Different one")
+            return {"error":"Too Many Redirects: Bad Url, Try Different one"}
+        except requests.exceptions.RequestException as err:
+            print("ERROR: Unknow Error")
+            return {"error":"ERROR: Unknow Error"}
     
     def __getAllCategories(self):
         page = 1
@@ -110,7 +142,7 @@ class Crawler:
                 if categoriesResponse['error'] == "too many requests":
                     time.sleep(60)
                 elif categoriesResponse['error'] == "Invalid token":
-                    if self.setToken() == False:
+                    if self.__setToken() == False:
                         return False
                 else:
                     return False
@@ -154,9 +186,7 @@ class Crawler:
         if self.__setToken():
             categoriesReturn = self.__getAllCategories()
         if categoriesReturn and self.__getAllCategoriesAPI():
-            print("Successfully crawled!")
-        else:
-            print("ERROR: Unknown Error")   
+            print("Successfully crawled!")   
 
     def saveToDatabase(self):
         if len(self.__data) == 0:
