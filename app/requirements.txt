@@ -1,0 +1,4 @@
+mysql-connector-python==8.0.26
+python-dotenv==0.19.0
+requests==2.25.1
+rich==10.7.0
